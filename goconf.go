@@ -2,6 +2,7 @@ package goconf
 
 import (
 	"io/ioutil"
+	"os"
 
 	"github.com/kelseyhightower/envconfig"
 	"gopkg.in/yaml.v2"
@@ -47,9 +48,9 @@ func parseYaml(v interface{}, o *opts) error {
 		err = yaml.Unmarshal(o.yamlBytes, v)
 	}
 
-	if err == nil && o.yamlPath != "" {
-		yamlBytes, err := ioutil.ReadFile(o.yamlPath)
-		if err != nil {
+	for _, path := range o.yamlPaths {
+		yamlBytes, err := ioutil.ReadFile(path)
+		if err != nil && !os.IsNotExist(err) {
 			return err
 		}
 		return yaml.Unmarshal(yamlBytes, v)

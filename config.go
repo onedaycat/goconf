@@ -4,16 +4,16 @@ type Option func(o *opts)
 
 type opts struct {
 	yaml      bool
-	yamlPath  string
+	yamlPaths []string
 	yamlBytes []byte
 	env       bool
 	envPrefix string
 }
 
-func WithYaml(path string) Option {
+func WithYaml(paths ...string) Option {
 	return func(o *opts) {
 		o.yaml = true
-		o.yamlPath = path
+		o.yamlPaths = paths
 	}
 }
 
