@@ -1,66 +1,30 @@
 package goconf
 
 import (
-    "io/ioutil"
     "os"
     "reflect"
     "strconv"
     "strings"
-
-    "gopkg.in/yaml.v2"
 )
 
-func Parse(v interface{}, options ...Option) error {
-    var err error
-    o := &opts{}
-    for _, option := range options {
-        option(o)
-    }
+func Parse(prefix string, v interface{}) {
+    rv := reflect.ValueOf(v)
+    rt := reflect.TypeOf(v)
 
-    if o.yaml {
-        if err = parseYaml(v, o); err != nil {
-            return err
+    for i := 0; i < rt.Elem().NumField(); i++ {
+        rti := rt.Elem().Field(i)
+        rvi := rv.Elem().Field(i)
+        data := os.Getenv(prefix + "_" + rti.Name)
+        if data == "" {
+            data = rti.Tag.Get("default")
+        }
+
+        if rvi.Type().Kind().String() == "slice" {
+            setSliceValue(&rvi, rvi.Type().String(), data)
+        } else {
+            setValue(&rvi, rvi.Type().Name(), data)
         }
     }
-
-    if o.env {
-        rv := reflect.ValueOf(v)
-        rt := reflect.TypeOf(v)
-
-        for i := 0; i < rt.Elem().NumField(); i++ {
-            rti := rt.Elem().Field(i)
-            rvi := rv.Elem().Field(i)
-            data := os.Getenv(o.envPrefix + "_" + rti.Name)
-            if data == "" {
-                data = rti.Tag.Get("default")
-            }
-
-            if rvi.Type().Kind().String() == "slice" {
-                setSliceValue(&rvi, rvi.Type().String(), data)
-            } else {
-                setValue(&rvi, rvi.Type().Name(), data)
-            }
-        }
-    }
-
-    return nil
-}
-
-func parseYaml(v interface{}, o *opts) error {
-    var err error
-    if o.yamlBytes != nil {
-        err = yaml.Unmarshal(o.yamlBytes, v)
-    }
-
-    for _, path := range o.yamlPaths {
-        yamlBytes, err := ioutil.ReadFile(path)
-        if err != nil && !os.IsNotExist(err) {
-            return err
-        }
-        return yaml.Unmarshal(yamlBytes, v)
-    }
-
-    return err
 }
 
 func setValue(rv *reflect.Value, valueType string, value string) {
